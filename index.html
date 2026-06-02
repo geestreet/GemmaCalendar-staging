@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gemma's Day">
+<meta name="theme-color" content="#1a1035">
+<title>Gemma's Schedule [STAGING]</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #0f0d1e;
+    --surface: #1a1635;
+    --surface2: #231f42;
+    --accent: #c084fc;
+    --accent2: #f0abfc;
+    --gold: #fbbf24;
+    --teal: #2dd4bf;
+    --rose: #fb7185;
+    --text: #f1eeff;
+    --muted: #9b93c4;
+    --border: rgba(192,132,252,0.15);
+    --done-bg: rgba(45,212,191,0.08);
+    --done-border: rgba(45,212,191,0.3);
+    --radius: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse 80% 60% at 20% -10%, rgba(192,132,252,0.18) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 100%, rgba(45,212,191,0.12) 0%, transparent 55%),
+      radial-gradient(ellipse 40% 40% at 50% 50%, rgba(251,191,36,0.04) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 0 0 100px; }
+
+  /* Header */
+  .header {
+    padding: 56px 24px 24px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: linear-gradient(to bottom, rgba(15,13,30,0.98) 80%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .header-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .header h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 2.2rem;
+    font-weight: 600;
+    line-height: 1.1;
+    background: linear-gradient(135deg, var(--accent2), var(--accent), var(--teal));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .header h1 span {
+    font-style: italic;
+    font-weight: 300;
+  }
+
+  .notif-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .notif-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .notif-btn.active { color: var(--teal); border-color: var(--done-border); background: var(--done-bg); }
+
+  /* Day tabs */
+  .day-tabs {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .day-tabs::-webkit-scrollbar { display: none; }
+
+  .day-tab {
+    flex-shrink: 0;
+    padding: 8px 14px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+  .day-tab:hover { border-color: var(--accent); color: var(--accent); }
+  .day-tab.active {
+    background: linear-gradient(135deg, var(--accent), #a855f7);
+    border-color: transparent;
+    color: white;
+    box-shadow: 0 4px 20px rgba(192,132,252,0.3);
+  }
+  .day-tab.today-tab { position: relative; }
+  .day-tab.today-tab::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--gold);
+  }
+
+  /* Progress bar */
+  .progress-wrap {
+    padding: 16px 24px 0;
+  }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .progress-bar {
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--teal), var(--accent));
+    border-radius: 100px;
+    transition: width 0.6s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  /* Current time indicator */
+  .now-banner {
+    margin: 12px 24px 0;
+    padding: 10px 14px;
+    background: rgba(251,191,36,0.08);
+    border: 1px solid rgba(251,191,36,0.2);
+    border-radius: 10px;
+    font-size: 0.78rem;
+    color: var(--gold);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .now-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); animation: pulse 2s infinite; }
+
+  /* Schedule list */
+  .schedule { padding: 16px 24px 0; }
+
+  .time-block {
+    position: relative;
+    margin-bottom: 10px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .time-block:active { transform: scale(0.98); }
+
+  .time-block.current {
+    border-color: rgba(251,191,36,0.4);
+    background: linear-gradient(135deg, var(--surface), rgba(251,191,36,0.06));
+    box-shadow: 0 0 0 1px rgba(251,191,36,0.2), 0 8px 32px rgba(251,191,36,0.1);
+  }
+
+  .time-block.done {
+    background: var(--done-bg);
+    border-color: var(--done-border);
+    opacity: 0.75;
+  }
+
+  .time-block.past:not(.done) {
+    opacity: 0.45;
+    background: rgba(26,22,53,0.5);
+  }
+
+  .time-block-inner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+  }
+
+  /* Checkbox */
+  .check {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    background: transparent;
+  }
+  .time-block.done .check {
+    background: var(--teal);
+    border-color: var(--teal);
+    box-shadow: 0 0 12px rgba(45,212,191,0.4);
+  }
+  .time-block.current .check { border-color: var(--gold); }
+  .check svg { display: none; }
+  .time-block.done .check svg { display: block; }
+
+  .block-content { flex: 1; min-width: 0; }
+
+  .block-task {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 3px;
+    transition: color 0.3s;
+  }
+  .time-block.done .block-task {
+    color: var(--teal);
+    text-decoration: line-through;
+    text-decoration-color: rgba(45,212,191,0.4);
+  }
+
+  .block-time {
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+  }
+
+  .current-badge {
+    font-size: 0.62rem;
+    padding: 3px 8px;
+    background: rgba(251,191,36,0.15);
+    border: 1px solid rgba(251,191,36,0.3);
+    color: var(--gold);
+    border-radius: 100px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  /* Current time line in schedule */
+  .now-line {
+    height: 2px;
+    background: linear-gradient(90deg, var(--gold), transparent);
+    margin: 4px 0;
+    border-radius: 1px;
+    position: relative;
+  }
+  .now-line::before {
+    content: 'NOW';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.6rem;
+    color: var(--gold);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    background: var(--bg);
+    padding: 0 4px;
+  }
+
+  /* Empty / all done */
+  .all-done {
+    text-align: center;
+    padding: 60px 24px;
+    font-family: 'Fraunces', serif;
+    font-size: 1.4rem;
+    font-style: italic;
+    color: var(--muted);
+  }
+  .all-done span { display: block; font-size: 3rem; margin-bottom: 12px; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 110px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 10px 20px;
+    font-size: 0.82rem;
+    color: var(--text);
+    white-space: nowrap;
+    z-index: 999;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    max-width: 90vw;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Bottom nav */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px 24px 32px;
+    background: linear-gradient(to top, rgba(15,13,30,0.98) 70%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: flex;
+    gap: 10px;
+    z-index: 50;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .reset-btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .reset-btn:hover { border-color: var(--rose); color: var(--rose); }
+
+  .install-btn {
+    flex: 2;
+    padding: 14px;
+    border-radius: 14px;
+    border: none;
+    background: linear-gradient(135deg, var(--accent), #a855f7);
+    color: white;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 20px rgba(192,132,252,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .install-btn:hover { box-shadow: 0 6px 28px rgba(192,132,252,0.4); transform: translateY(-1px); }
+  .install-btn:disabled { opacity: 0.5; cursor: default; transform: none; }
+
+  /* Install instructions overlay */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 200;
+    display: flex;
+    align-items: flex-end;
+    padding: 16px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .overlay.show { opacity: 1; pointer-events: all; }
+  .overlay-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 28px;
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    transform: translateY(20px);
+    transition: transform 0.3s;
+  }
+  .overlay.show .overlay-card { transform: translateY(0); }
+  .overlay-card h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.4rem;
+    margin-bottom: 6px;
+  }
+  .overlay-card p { color: var(--muted); font-size: 0.85rem; margin-bottom: 20px; line-height: 1.5; }
+  .steps { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+  .step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border-radius: 12px;
+    font-size: 0.85rem;
+  }
+  .step-num {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #a855f7);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .close-overlay {
+    width: 100%;
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .time-block { animation: slideIn 0.3s ease both; }
+  .time-block:nth-child(1) { animation-delay: 0.02s; }
+  .time-block:nth-child(2) { animation-delay: 0.04s; }
+  .time-block:nth-child(3) { animation-delay: 0.06s; }
+  .time-block:nth-child(4) { animation-delay: 0.08s; }
+  .time-block:nth-child(5) { animation-delay: 0.10s; }
+  .time-block:nth-child(6) { animation-delay: 0.12s; }
+  .time-block:nth-child(7) { animation-delay: 0.14s; }
+  .time-block:nth-child(8) { animation-delay: 0.16s; }
+  .time-block:nth-child(9) { animation-delay: 0.18s; }
+  .time-block:nth-child(10) { animation-delay: 0.20s; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <h1>Gemma's <span>Schedule</span></h1>
+      </div>
+      <button class="notif-btn" id="notifBtn" onclick="toggleNotifications()">
+        <span id="notifIcon">🔔</span>
+        <span id="notifText">Enable Alerts</span>
+      </button>
+    </div>
+    <div class="day-tabs" id="dayTabs"></div>
+  </div>
+
+  <!-- STAGING TOOLBAR -->
+  <div id="stagingBar" style="
+    margin: 8px 24px 0;
+    padding: 12px 16px;
+    background: rgba(251,191,36,0.1);
+    border: 1px dashed rgba(251,191,36,0.4);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  ">
+    <span style="font-size:0.72rem;color:#fbbf24;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;">🧪 Staging</span>
+    <button onclick="testNotification()" style="
+      background:#1a1635;border:1px solid rgba(251,191,36,0.4);border-radius:8px;
+      color:#fbbf24;font-family:'DM Sans',sans-serif;font-size:0.75rem;
+      padding:6px 12px;cursor:pointer;">
+      🔔 Test Alert Now
+    </button>
+    <button onclick="simulateEventStart()" style="
+      background:#1a1635;border:1px solid rgba(192,132,252,0.4);border-radius:8px;
+      color:#c084fc;font-family:'DM Sans',sans-serif;font-size:0.75rem;
+      padding:6px 12px;cursor:pointer;">
+      ⏰ Simulate Event Start
+    </button>
+    <button onclick="clearAllData()" style="
+      background:#1a1635;border:1px solid rgba(251,113,133,0.4);border-radius:8px;
+      color:#fb7185;font-family:'DM Sans',sans-serif;font-size:0.75rem;
+      padding:6px 12px;cursor:pointer;">
+      🗑 Clear All Data
+    </button>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span>TODAY'S PROGRESS</span>
+      <span id="progressText">0 / 0</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div id="nowBanner" class="now-banner" style="display:none">
+    <div class="now-dot"></div>
+    <span id="nowText">Current time: --</span>
+  </div>
+
+  <div class="schedule" id="schedule"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="bottom-nav">
+  <button class="reset-btn" onclick="resetDay()">↺ Reset Day</button>
+  <button class="install-btn" id="installBtn" onclick="showInstallOverlay()">
+    📲 Add to Home Screen
+  </button>
+</div>
+
+<!-- Install overlay -->
+<div class="overlay" id="installOverlay">
+  <div class="overlay-card">
+    <h3>📲 Add to Home Screen</h3>
+    <p>Install this as an app on your iPhone to get push notifications when each time slot starts.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>Tap the <strong>Share button</strong> (□↑) at the bottom of Safari</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>Scroll down and tap <strong>"Add to Home Screen"</strong></div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>Tap <strong>"Add"</strong> in the top right corner</div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div>Open the app from your home screen and tap <strong>"Enable Alerts"</strong></div>
+      </div>
+    </div>
+    <button class="close-overlay" onclick="closeOverlay()">Got it!</button>
+  </div>
+</div>
+
+<script>
+// ─── SCHEDULE DATA ─────────────────────────────────────────────────────────
+const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const DAY_SHORT = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+// Each entry: [startTime, endTime, task]
+// Time format: "HH:MM" 24h
+const scheduleData = {
+  weekday: [ // Mon-Fri
+    ["06:05","06:20","Wake Up ☀️"],
+    ["06:20","06:50","Morning Routine 🪥"],
+    ["06:50","07:15","Pack up & head downstairs 🎒"],
+    ["07:15","08:00","Cab Ride 🚕"],
+    ["08:00","14:30","Monte Nido 🏥"],
+    ["14:30","15:30","Cab Ride Home 🚕"],
+    ["15:30","16:00","Rest 😴"],
+    ["16:00","16:25","Snack & Rest 🍎"],
+    ["16:30","18:30","Tutor Time 📚"],
+    ["18:30","19:30","Dinner Time 🍽️"],
+    ["19:30","20:20","Relax 🛋️"],
+    ["20:20","20:40","PM Snack 🍌"],
+    ["20:40","21:20","Night Routine 🌙"],
+    ["21:20","21:25","Pick Out Clothes 👗"],
+    ["21:25","21:55","Read (No Devices) 📖"],
+    ["22:00","06:05","Bed Time 😴"],
+  ],
+  saturday: [
+    ["07:05","07:20","Wake Up ☀️"],
+    ["07:20","07:50","Morning Routine 🪥"],
+    ["07:50","08:00","Pack up & head downstairs 🎒"],
+    ["08:00","08:20","Cab Ride 🚕"],
+    ["08:30","14:30","Monte Nido 🏥"],
+    ["14:30","15:30","Cab Ride Home 🚕"],
+    ["15:30","16:00","Rest 😴"],
+    ["16:00","16:25","Snack & Rest 🍎"],
+    ["16:30","18:30","Optional / Art Time 🎨"],
+    ["18:30","19:30","Dinner Time 🍽️"],
+    ["19:30","20:20","Relax 🛋️"],
+    ["20:20","20:40","PM Snack 🍌"],
+    ["20:40","21:20","Night Routine 🌙"],
+    ["22:00","07:05","Bed Time 😴"],
+  ],
+  sunday: [
+    ["07:05","07:20","Wake Up ☀️"],
+    ["07:20","07:50","Morning Routine 🪥"],
+    ["07:50","08:00","Pack up & head downstairs 🎒"],
+    ["08:00","08:20","Cab Ride (if applicable) 🚕"],
+    ["08:30","14:30","Monte Nido / Vacation 🌴"],
+    ["14:30","15:30","Cab Ride Home 🚕"],
+    ["15:30","16:00","Rest 😴"],
+    ["16:00","16:25","Snack & Rest 🍎"],
+    ["16:30","18:30","Optional / Art Time 🎨"],
+    ["18:30","19:30","Dinner Time 🍽️"],
+    ["19:30","20:20","Relax 🛋️"],
+    ["20:20","20:40","PM Snack 🍌"],
+    ["20:40","21:20","Night Routine 🌙"],
+    ["23:00","07:05","Bed Time 😴"],
+  ]
+};
+
+function getDaySchedule(dayIndex) {
+  if (dayIndex === 5) return scheduleData.saturday;
+  if (dayIndex === 6) return scheduleData.sunday;
+  return scheduleData.weekday;
+}
+
+// ─── STATE ─────────────────────────────────────────────────────────────────
+let selectedDay = new Date().getDay(); // 0=Sun...6=Sat
+// Convert JS day (0=Sun) to our index (0=Mon)
+function jsDayToIdx(jsDay) { return jsDay === 0 ? 6 : jsDay - 1; }
+let activeDayIdx = jsDayToIdx(new Date().getDay());
+
+// Storage key per day
+function storageKey(dayIdx) { return `gemma_done_${dayIdx}`; }
+function getDoneSet(dayIdx) {
+  try { return new Set(JSON.parse(localStorage.getItem(storageKey(dayIdx)) || '[]')); }
+  catch { return new Set(); }
+}
+function saveDoneSet(dayIdx, set) {
+  localStorage.setItem(storageKey(dayIdx), JSON.stringify([...set]));
+}
+
+// ─── TIME UTILS ────────────────────────────────────────────────────────────
+function parseTime(t) {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function nowMinutes() {
+  const n = new Date();
+  return n.getHours() * 60 + n.getMinutes();
+}
+
+function fmt12(t) {
+  let [h, m] = t.split(':').map(Number);
+  const ampm = h >= 12 ? 'pm' : 'am';
+  h = h % 12 || 12;
+  return `${h}:${String(m).padStart(2,'0')}${ampm}`;
+}
+
+function blockStatus(start, end) {
+  // "past", "current", "future"
+  const now = nowMinutes();
+  const s = parseTime(start);
+  let e = parseTime(end);
+  if (e <= s) e += 24 * 60; // overnight
+  if (now >= s && now < e) return 'current';
+  if (now >= e) return 'past';
+  return 'future';
+}
+
+// ─── RENDER ────────────────────────────────────────────────────────────────
+function renderDayTabs() {
+  const tabs = document.getElementById('dayTabs');
+  const todayIdx = jsDayToIdx(new Date().getDay());
+  tabs.innerHTML = DAY_SHORT.map((d, i) => `
+    <button class="day-tab ${i === activeDayIdx ? 'active' : ''} ${i === todayIdx ? 'today-tab' : ''}"
+      onclick="switchDay(${i})">${d}</button>
+  `).join('');
+}
+
+function renderSchedule() {
+  const sched = document.getElementById('schedule');
+  const data = getDaySchedule(activeDayIdx);
+  const done = getDoneSet(activeDayIdx);
+  const todayIdx = jsDayToIdx(new Date().getDay());
+  const isToday = activeDayIdx === todayIdx;
+
+  let html = '';
+  let nowInserted = false;
+
+  data.forEach((item, i) => {
+    const [start, end, task] = item;
+    const status = isToday ? blockStatus(start, end) : 'future';
+    const isDone = done.has(i);
+
+    if (isToday && !nowInserted && status === 'future') {
+      html += `<div class="now-line"></div>`;
+      nowInserted = true;
+    }
+
+    let cls = '';
+    if (isDone) cls = 'done';
+    else if (status === 'current') cls = 'current';
+    else if (status === 'past') cls = 'past';
+
+    html += `
+      <div class="time-block ${cls}" onclick="toggleDone(${i})" id="block-${i}">
+        <div class="time-block-inner">
+          <div class="check">
+            <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
+              <path d="M1 5L4.5 8.5L11 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="block-content">
+            <div class="block-task">${task}</div>
+            <div class="block-time">${fmt12(start)} – ${fmt12(end)}</div>
+          </div>
+          ${status === 'current' && !isDone ? '<div class="current-badge">NOW</div>' : ''}
+        </div>
+      </div>`;
+  });
+
+  sched.innerHTML = html;
+  updateProgress();
+  updateNowBanner();
+}
+
+function updateProgress() {
+  const data = getDaySchedule(activeDayIdx);
+  const done = getDoneSet(activeDayIdx);
+  const total = data.length;
+  const count = done.size;
+  const pct = total ? (count / total) * 100 : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = `${count} / ${total}`;
+}
+
+function updateNowBanner() {
+  const todayIdx = jsDayToIdx(new Date().getDay());
+  const banner = document.getElementById('nowBanner');
+  if (activeDayIdx === todayIdx) {
+    const n = new Date();
+    const h = n.getHours(), m = n.getMinutes();
+    const ampm = h >= 12 ? 'pm' : 'am';
+    const h12 = h % 12 || 12;
+    document.getElementById('nowText').textContent =
+      `It's ${h12}:${String(m).padStart(2,'0')}${ampm} — tap any block to check it off`;
+    banner.style.display = 'flex';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+function toggleDone(idx) {
+  const done = getDoneSet(activeDayIdx);
+  if (done.has(idx)) {
+    done.delete(idx);
+    showToast('Unchecked ↩');
+  } else {
+    done.add(idx);
+    const data = getDaySchedule(activeDayIdx);
+    showToast('✓ ' + data[idx][2].replace(/[^\w\s\/]/g, '').trim());
+    // confetti-ish feedback
+    const block = document.getElementById('block-' + idx);
+    if (block) {
+      block.style.transform = 'scale(1.02)';
+      setTimeout(() => { block.style.transform = ''; }, 300);
+    }
+  }
+  saveDoneSet(activeDayIdx, done);
+  renderSchedule();
+}
+
+function switchDay(idx) {
+  activeDayIdx = idx;
+  renderDayTabs();
+  renderSchedule();
+}
+
+function resetDay() {
+  if (confirm('Reset all checkmarks for ' + DAYS[activeDayIdx] + '?')) {
+    localStorage.removeItem(storageKey(activeDayIdx));
+    renderSchedule();
+    showToast('Day reset ↺');
+  }
+}
+
+// ─── TOAST ─────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ─── NOTIFICATIONS ─────────────────────────────────────────────────────────
+let notifEnabled = false;
+let notifIntervalId = null;
+let swRegistration = null;
+
+// Register service worker (required for iOS PWA notifications)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').then(reg => {
+    swRegistration = reg;
+  }).catch(err => console.warn('SW registration failed:', err));
+}
+
+async function toggleNotifications() {
+  if (notifEnabled) {
+    notifEnabled = false;
+    clearInterval(notifIntervalId);
+    localStorage.setItem('gemma_notif', '0');
+    updateNotifBtn();
+    showToast('Notifications off');
+    return;
+  }
+
+  // iOS PWA requires the app to be installed to home screen
+  if (!isStandalone() && /iphone|ipad|ipod/i.test(navigator.userAgent)) {
+    showToast('📲 Add to Home Screen first, then enable alerts');
+    showInstallOverlay();
+    return;
+  }
+
+  if (!('Notification' in window) && !swRegistration) {
+    showToast('⚠️ Notifications not supported on this browser');
+    return;
+  }
+
+  let perm = 'denied';
+  try {
+    perm = await Notification.requestPermission();
+  } catch(e) {
+    // Some iOS versions throw — try the callback form
+    perm = await new Promise(resolve => Notification.requestPermission(resolve));
+  }
+
+  if (perm === 'granted') {
+    notifEnabled = true;
+    localStorage.setItem('gemma_notif', '1');
+    updateNotifBtn();
+    showToast('🔔 Alerts enabled!');
+    // Send a test notification so user sees it works
+    sendNotification("🔔 Gemma's Alerts Active", "You'll get a banner at the start of each activity.", 'test');
+    startNotifWatcher();
+  } else {
+    showToast('⚠️ Permission denied — check Settings → Notifications');
+  }
+}
+
+// Send notification via Service Worker (works on iOS PWA)
+// Falls back to regular Notification API on desktop
+function sendNotification(title, body, tag) {
+  if (swRegistration && swRegistration.active) {
+    swRegistration.active.postMessage({ type: 'SHOW_NOTIFICATION', title, body, tag });
+  } else if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, { body, tag });
+  }
+}
+
+function updateNotifBtn() {
+  const btn = document.getElementById('notifBtn');
+  const icon = document.getElementById('notifIcon');
+  const txt = document.getElementById('notifText');
+  if (notifEnabled) {
+    btn.classList.add('active');
+    icon.textContent = '🔔';
+    txt.textContent = 'Alerts On';
+  } else {
+    btn.classList.remove('active');
+    icon.textContent = '🔔';
+    txt.textContent = 'Enable Alerts';
+  }
+}
+
+const notifiedBlocks = new Set();
+
+function startNotifWatcher() {
+  clearInterval(notifIntervalId);
+  notifIntervalId = setInterval(checkAndNotify, 30000); // check every 30s
+  checkAndNotify();
+}
+
+function checkAndNotify() {
+  if (!notifEnabled) return;
+  const todayIdx = jsDayToIdx(new Date().getDay());
+  const data = getDaySchedule(todayIdx);
+  const now = nowMinutes();
+  const todayStr = new Date().toDateString();
+
+  data.forEach((item, i) => {
+    const [start, , task] = item;
+    const s = parseTime(start);
+    const key = `${todayStr}_${i}`;
+    // Notify within 1 minute of start time
+    if (Math.abs(now - s) <= 1 && !notifiedBlocks.has(key)) {
+      notifiedBlocks.add(key);
+      sendNotification(
+        "⏰ Time for Gemma's next activity!",
+        `${task} — ${fmt12(start)}`,
+        key
+      );
+    }
+  });
+}
+
+// ─── INSTALL OVERLAY ───────────────────────────────────────────────────────
+function showInstallOverlay() {
+  document.getElementById('installOverlay').classList.add('show');
+}
+function closeOverlay() {
+  document.getElementById('installOverlay').classList.remove('show');
+}
+
+// Detect if already installed as PWA
+function isStandalone() {
+  return window.navigator.standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches;
+}
+
+// ─── INIT ──────────────────────────────────────────────────────────────────
+function init() {
+  renderDayTabs();
+  renderSchedule();
+
+  if (isStandalone()) {
+    document.getElementById('installBtn').textContent = '✅ App Installed';
+    document.getElementById('installBtn').disabled = true;
+  }
+
+  // Auto-refresh every minute to update current block
+  setInterval(() => {
+    renderSchedule();
+  }, 60000);
+
+  // Restore notification state if permission was previously granted
+  if ('Notification' in window && Notification.permission === 'granted' && localStorage.getItem('gemma_notif') === '1') {
+    // Wait for SW to be ready before starting watcher
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(reg => {
+        swRegistration = reg;
+        notifEnabled = true;
+        updateNotifBtn();
+        startNotifWatcher();
+      });
+    } else {
+      notifEnabled = true;
+      updateNotifBtn();
+      startNotifWatcher();
+    }
+  }
+}
+
+init();
+
+// ─── STAGING HELPERS ───────────────────────────────────────────────────────
+function testNotification() {
+  if (!notifEnabled) {
+    showToast('⚠️ Enable Alerts first');
+    return;
+  }
+  sendNotification(
+    "🧪 Test Alert",
+    "Notifications are working on this device!",
+    'staging-test-' + Date.now()
+  );
+  showToast('Test notification sent!');
+}
+
+function simulateEventStart() {
+  if (!notifEnabled) {
+    showToast('⚠️ Enable Alerts first');
+    return;
+  }
+  const todayIdx = jsDayToIdx(new Date().getDay());
+  const data = getDaySchedule(todayIdx);
+  // Pick the next upcoming event
+  const now = nowMinutes();
+  const next = data.find(([start]) => parseTime(start) > now) || data[0];
+  const [start, , task] = next;
+  sendNotification(
+    "⏰ Time for Gemma's next activity!",
+    `${task} — ${fmt12(start)}`,
+    'staging-sim-' + Date.now()
+  );
+  showToast('Simulated: ' + task.replace(/[^\w\s]/g,'').trim());
+}
+
+function clearAllData() {
+  if (confirm('Clear all checkmarks and notification state?')) {
+    for (let i = 0; i < 7; i++) localStorage.removeItem(storageKey(i));
+    localStorage.removeItem('gemma_notif');
+    notifEnabled = false;
+    updateNotifBtn();
+    clearInterval(notifIntervalId);
+    renderSchedule();
+    showToast('All data cleared');
+  }
+}
+</script>
+
+<!-- PWA Manifest injected inline -->
+<script>
+(function() {
+  const manifest = {
+    name: "Gemma's Schedule",
+    short_name: "Gemma's Day",
+    description: "Gemma's weekly schedule tracker with notifications",
+    start_url: "./",
+    display: "standalone",
+    background_color: "#0f0d1e",
+    theme_color: "#1a1035",
+    orientation: "portrait",
+    icons: [
+      {
+        src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%231a1635'/><text x='50%' y='55%' dominant-baseline='middle' text-anchor='middle' font-size='320'>📅</text></svg>",
+        sizes: "512x512",
+        type: "image/svg+xml",
+        purpose: "any maskable"
+      }
+    ]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('link');
+  link.rel = 'manifest';
+  link.href = url;
+  document.head.appendChild(link);
+})();
+</script>
+
+</body>
+</html>
