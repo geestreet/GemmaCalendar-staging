@@ -929,12 +929,12 @@ function checkAndNotify() {
     const [start, , task] = item;
     const s = parseTime(start);
     const key = `${todayStr}_${i}`;
-    // Notify within 1 minute of start time
-    if (Math.abs(now - s) <= 1 && !notifiedBlocks.has(key)) {
+    // Notify 5 minutes before start time
+    if (Math.abs(now - (s - 5)) <= 1 && !notifiedBlocks.has(key)) {
       notifiedBlocks.add(key);
       sendNotification(
-        "⏰ Time for Gemma's next activity!",
-        `${task} — ${fmt12(start)}`,
+        "⏰ Coming up in 5 minutes!",
+        `${task} starts at ${fmt12(start)}`,
         key
       );
     }
@@ -1016,8 +1016,8 @@ function simulateEventStart() {
   const next = data.find(([start]) => parseTime(start) > now) || data[0];
   const [start, , task] = next;
   sendNotification(
-    "⏰ Time for Gemma's next activity!",
-    `${task} — ${fmt12(start)}`,
+    "⏰ Coming up in 5 minutes!",
+    `${task} starts at ${fmt12(start)}`,
     'staging-sim-' + Date.now()
   );
   showToast('Simulated: ' + task.replace(/[^\w\s]/g,'').trim());
