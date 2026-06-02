@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Gemma's Day">
 <meta name="theme-color" content="#1a1035">
 <title>Gemma's Schedule [STAGING]</title>
+<link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 
@@ -1057,9 +1058,15 @@ function clearAllData() {
     orientation: "portrait",
     icons: [
       {
-        src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%231a1635'/><text x='50%' y='55%' dominant-baseline='middle' text-anchor='middle' font-size='320'>📅</text></svg>",
+        src: "./icon-192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "any maskable"
+      },
+      {
+        src: "./icon-512.png",
         sizes: "512x512",
-        type: "image/svg+xml",
+        type: "image/png",
         purpose: "any maskable"
       }
     ]
