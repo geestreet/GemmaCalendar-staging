@@ -911,14 +911,18 @@ async function testBackgroundPush() {
   showToast('📡 Asking server to push…');
   try {
     const res = await fetch(`${WORKER_URL}/test-push`);
-    const j = await res.json();
-    if (j.ok) {
+    const text = await res.text();
+    let j;
+    try { j = JSON.parse(text); } catch { j = null; }
+    if (j && j.ok) {
       showToast('✅ Push sent! Close app & check for notification.');
+    } else if (j && j.error) {
+      showToast('❌ Push failed: ' + j.error);
     } else {
-      showToast('❌ Push failed: ' + (j.error || j.status));
+      showToast('⚠️ Endpoint not deployed yet: ' + text.slice(0, 40));
     }
   } catch (err) {
-    showToast('❌ Could not reach worker: ' + err.message);
+    showToast('❌ Network error: ' + err.message);
   }
 }
 
