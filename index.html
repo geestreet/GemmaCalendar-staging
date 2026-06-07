@@ -525,11 +525,11 @@
       padding:6px 12px;cursor:pointer;">
       🔔 Test Alert Now
     </button>
-    <button onclick="simulateEventStart()" style="
+    <button id="simBtn" onclick="simulateEventStart()" style="
       background:#1a1635;border:1px solid rgba(192,132,252,0.4);border-radius:8px;
       color:#c084fc;font-family:'DM Sans',sans-serif;font-size:0.75rem;
       padding:6px 12px;cursor:pointer;">
-      ⏰ Simulate Event Start
+      ⏰ Alert in 1 Min
     </button>
     <button onclick="clearAllData()" style="
       background:#1a1635;border:1px solid rgba(251,113,133,0.4);border-radius:8px;
@@ -1052,24 +1052,56 @@ function testNotification() {
   showToast('Test notification sent!');
 }
 
+let simCountdownId = null;
+
 function simulateEventStart() {
   if (!notifEnabled) {
     showToast('⚠️ Enable Alerts first');
     return;
   }
+
+  // If already counting down, cancel it
+  if (simCountdownId !== null) {
+    clearTimeout(simCountdownId);
+    clearInterval(simTickId);
+    simCountdownId = null;
+    simTickId = null;
+    const btn = document.getElementById('simBtn');
+    if (btn) { btn.textContent = '⏰ Alert in 1 Min'; btn.style.opacity = '1'; }
+    showToast('Countdown cancelled');
+    return;
+  }
+
   const todayIdx = jsDayToIdx(new Date().getDay());
   const data = getDaySchedule(todayIdx);
-  // Pick the next upcoming event
   const now = nowMinutes();
   const next = data.find(([start]) => parseTime(start) > now) || data[0];
   const [start, , task] = next;
-  sendNotification(
-    "⏰ Coming up in 5 minutes!",
-    `${task} starts at ${fmt12(start)}`,
-    'staging-sim-' + Date.now()
-  );
-  showToast('Simulated: ' + task.replace(/[^\w\s]/g,'').trim());
+
+  const btn = document.getElementById('simBtn');
+  let secsLeft = 60;
+
+  function tick() {
+    if (btn) btn.textContent = `⏰ Firing in ${secsLeft}s (tap to cancel)`;
+    secsLeft--;
+  }
+  tick();
+  simTickId = setInterval(tick, 1000);
+
+  simCountdownId = setTimeout(() => {
+    clearInterval(simTickId);
+    simCountdownId = null;
+    simTickId = null;
+    if (btn) { btn.textContent = '⏰ Alert in 1 Min'; btn.style.opacity = '1'; }
+    sendNotification(
+      "⏰ Coming up in 5 minutes!",
+      `${task} starts at ${fmt12(start)}`,
+      'staging-sim-' + Date.now()
+    );
+    showToast('Fired: ' + task.replace(/[^\w\s]/g,'').trim());
+  }, 60000);
 }
+let simTickId = null;
 
 function clearAllData() {
   if (confirm('Clear all checkmarks and notification state?')) {
