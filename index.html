@@ -918,8 +918,10 @@ async function testBackgroundPush() {
       showToast('✅ Push sent! Close app & check for notification.');
     } else if (j && j.error) {
       showToast('❌ Push failed: ' + j.error);
+    } else if (j) {
+      showToast('❌ Push failed — status ' + (j.status || '?') + ' from push service. Try Re-send Sub first.');
     } else {
-      showToast('⚠️ Endpoint not deployed yet: ' + text.slice(0, 40));
+      showToast('⚠️ Unexpected response: ' + text.slice(0, 40));
     }
   } catch (err) {
     showToast('❌ Network error: ' + err.message);
