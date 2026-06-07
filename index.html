@@ -531,6 +531,12 @@
       padding:6px 12px;cursor:pointer;">
       ⏰ Alert in 1 Min
     </button>
+    <button onclick="testBackgroundPush()" style="
+      background:#1a1635;border:1px solid rgba(251,191,36,0.6);border-radius:8px;
+      color:#fbbf24;font-family:'DM Sans',sans-serif;font-size:0.75rem;font-weight:600;
+      padding:6px 12px;cursor:pointer;">
+      🚀 BG Push Test
+    </button>
     <button onclick="resendSubscription()" style="
       background:#1a1635;border:1px solid rgba(45,212,191,0.4);border-radius:8px;
       color:#2dd4bf;font-family:'DM Sans',sans-serif;font-size:0.75rem;
@@ -898,6 +904,21 @@ async function sendSubscriptionToServer(sub) {
   } catch (err) {
     showToast('❌ Failed to reach server: ' + err.message);
     console.warn('Failed to send subscription to server:', err);
+  }
+}
+
+async function testBackgroundPush() {
+  showToast('📡 Asking server to push…');
+  try {
+    const res = await fetch(`${WORKER_URL}/test-push`);
+    const j = await res.json();
+    if (j.ok) {
+      showToast('✅ Push sent! Close app & check for notification.');
+    } else {
+      showToast('❌ Push failed: ' + (j.error || j.status));
+    }
+  } catch (err) {
+    showToast('❌ Could not reach worker: ' + err.message);
   }
 }
 
