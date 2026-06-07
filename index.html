@@ -531,6 +531,12 @@
       padding:6px 12px;cursor:pointer;">
       ⏰ Alert in 1 Min
     </button>
+    <button onclick="debugPush()" style="
+      background:#1a1635;border:1px solid rgba(45,212,191,0.4);border-radius:8px;
+      color:#2dd4bf;font-family:'DM Sans',sans-serif;font-size:0.75rem;
+      padding:6px 12px;cursor:pointer;">
+      🔍 Debug Push
+    </button>
     <button onclick="clearAllData()" style="
       background:#1a1635;border:1px solid rgba(251,113,133,0.4);border-radius:8px;
       color:#fb7185;font-family:'DM Sans',sans-serif;font-size:0.75rem;
@@ -849,29 +855,68 @@ function urlB64ToUint8Array(base64String) {
 
 async function subscribeToPush(reg) {
   try {
+    if (!reg.pushManager) {
+      showToast('⚠️ pushManager not available — must be installed as PWA from home screen');
+      return;
+    }
     const existing = await reg.pushManager.getSubscription();
-    if (existing) { await sendSubscriptionToServer(existing); return; }
-
+    if (existing) {
+      showToast('📡 Re-sending existing subscription…');
+      await sendSubscriptionToServer(existing);
+      return;
+    }
+    showToast('📡 Subscribing to push…');
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlB64ToUint8Array(VAPID_PUBLIC_KEY),
     });
     await sendSubscriptionToServer(sub);
   } catch (err) {
+    showToast('❌ Push subscribe failed: ' + err.message);
     console.warn('Push subscription failed:', err);
   }
 }
 
 async function sendSubscriptionToServer(sub) {
   try {
-    await fetch(`${WORKER_URL}/subscribe`, {
+    const res = await fetch(`${WORKER_URL}/subscribe`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ subscription: sub }),
     });
+    if (res.ok) {
+      showToast('✅ Push subscription saved to server!');
+    } else {
+      showToast('❌ Server returned ' + res.status);
+    }
   } catch (err) {
+    showToast('❌ Failed to reach server: ' + err.message);
     console.warn('Failed to send subscription to server:', err);
   }
+}
+
+async function debugPush() {
+  const lines = [];
+  lines.push('SW: ' + ('serviceWorker' in navigator ? '✅' : '❌'));
+  lines.push('Push API: ' + ('PushManager' in window ? '✅' : '❌'));
+  lines.push('Notif API: ' + ('Notification' in window ? '✅' : '❌'));
+  lines.push('Notif perm: ' + (('Notification' in window) ? Notification.permission : 'n/a'));
+  lines.push('Standalone: ' + (navigator.standalone ? '✅ yes' : '❌ not installed'));
+  if (swRegistration) {
+    lines.push('SW state: ' + (swRegistration.active ? swRegistration.active.state : 'no active SW'));
+    if (swRegistration.pushManager) {
+      try {
+        const sub = await swRegistration.pushManager.getSubscription();
+        lines.push('Push sub: ' + (sub ? '✅ exists' : '❌ none'));
+        if (sub) lines.push('Endpoint: …' + sub.endpoint.slice(-30));
+      } catch(e) { lines.push('Push sub err: ' + e.message); }
+    } else {
+      lines.push('pushManager: ❌ not available');
+    }
+  } else {
+    lines.push('SW reg: ❌ null');
+  }
+  alert('PUSH DEBUG\n\n' + lines.join('\n'));
 }
 
 // Register service worker (required for iOS PWA notifications)
