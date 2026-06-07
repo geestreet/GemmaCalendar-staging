@@ -1,5 +1,5 @@
 // Gemma Schedule — Service Worker
-const VERSION = '1.4';
+const VERSION = '1.5';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
