@@ -531,6 +531,12 @@
       padding:6px 12px;cursor:pointer;">
       ⏰ Alert in 1 Min
     </button>
+    <button onclick="resendSubscription()" style="
+      background:#1a1635;border:1px solid rgba(45,212,191,0.4);border-radius:8px;
+      color:#2dd4bf;font-family:'DM Sans',sans-serif;font-size:0.75rem;
+      padding:6px 12px;cursor:pointer;">
+      📡 Re-send Sub
+    </button>
     <button onclick="debugPush()" style="
       background:#1a1635;border:1px solid rgba(45,212,191,0.4);border-radius:8px;
       color:#2dd4bf;font-family:'DM Sans',sans-serif;font-size:0.75rem;
@@ -893,6 +899,20 @@ async function sendSubscriptionToServer(sub) {
     showToast('❌ Failed to reach server: ' + err.message);
     console.warn('Failed to send subscription to server:', err);
   }
+}
+
+async function resendSubscription() {
+  if (!swRegistration || !swRegistration.pushManager) {
+    showToast('❌ No pushManager — open from home screen icon');
+    return;
+  }
+  showToast('📡 Looking up subscription…');
+  const sub = await swRegistration.pushManager.getSubscription();
+  if (!sub) {
+    showToast('❌ No subscription found — tap Enable Alerts first');
+    return;
+  }
+  await sendSubscriptionToServer(sub);
 }
 
 async function debugPush() {
