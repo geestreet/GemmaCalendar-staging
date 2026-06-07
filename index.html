@@ -836,6 +836,44 @@ let notifEnabled = false;
 let notifIntervalId = null;
 let swRegistration = null;
 
+// Cloudflare Worker URL — handles push subscriptions
+const WORKER_URL = 'https://gemma-calendar.REPLACE_WITH_YOUR_SUBDOMAIN.workers.dev';
+const VAPID_PUBLIC_KEY = 'BBCkE-7ZIVwP6MNWDmtHPiw05oNXyPoTaWmM2a8D0VOQXin3Ka0CNOh9aFxYVPajn4MreKvvl1tEFNNDcqMUKeU';
+
+function urlB64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
+async function subscribeToPush(reg) {
+  try {
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) { await sendSubscriptionToServer(existing); return; }
+
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlB64ToUint8Array(VAPID_PUBLIC_KEY),
+    });
+    await sendSubscriptionToServer(sub);
+  } catch (err) {
+    console.warn('Push subscription failed:', err);
+  }
+}
+
+async function sendSubscriptionToServer(sub) {
+  try {
+    await fetch(`${WORKER_URL}/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub }),
+    });
+  } catch (err) {
+    console.warn('Failed to send subscription to server:', err);
+  }
+}
+
 // Register service worker (required for iOS PWA notifications)
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').then(reg => {
@@ -885,8 +923,10 @@ async function toggleNotifications() {
     localStorage.setItem('gemma_notif', '1');
     updateNotifBtn();
     showToast('🔔 Alerts enabled!');
+    // Subscribe to Web Push for background notifications
+    if (swRegistration) subscribeToPush(swRegistration);
     // Send a test notification so user sees it works
-    sendNotification("🔔 Gemma's Alerts Active", "You'll get a banner at the start of each activity.", 'test');
+    sendNotification("🔔 Gemma's Alerts Active", "You'll get a banner even when the app is closed.", 'test');
     startNotifWatcher();
   } else {
     showToast('⚠️ Permission denied — check Settings → Notifications');
