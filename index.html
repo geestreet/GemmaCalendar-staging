@@ -1144,56 +1144,34 @@ function testNotification() {
   showToast('Test notification sent!');
 }
 
-let simCountdownId = null;
-
 function simulateEventStart() {
   if (!notifEnabled) {
     showToast('⚠️ Enable Alerts first');
     return;
   }
-
-  // If already counting down, cancel it
-  if (simCountdownId !== null) {
-    clearTimeout(simCountdownId);
-    clearInterval(simTickId);
-    simCountdownId = null;
-    simTickId = null;
-    const btn = document.getElementById('simBtn');
-    if (btn) { btn.textContent = '⏰ Alert in 1 Min'; btn.style.opacity = '1'; }
-    showToast('Countdown cancelled');
-    return;
-  }
-
-  const todayIdx = jsDayToIdx(new Date().getDay());
-  const data = getDaySchedule(todayIdx);
-  const now = nowMinutes();
-  const next = data.find(([start]) => parseTime(start) > now) || data[0];
-  const [start, , task] = next;
-
+  // Schedule server-side push in ~60s so it fires even when app is closed
+  showToast('📡 Scheduling push in ~60s — close the app now!');
   const btn = document.getElementById('simBtn');
-  let secsLeft = 60;
-
-  function tick() {
-    if (btn) btn.textContent = `⏰ Firing in ${secsLeft}s (tap to cancel)`;
-    secsLeft--;
-  }
-  tick();
-  simTickId = setInterval(tick, 1000);
-
-  simCountdownId = setTimeout(() => {
-    clearInterval(simTickId);
-    simCountdownId = null;
-    simTickId = null;
-    if (btn) { btn.textContent = '⏰ Alert in 1 Min'; btn.style.opacity = '1'; }
-    sendNotification(
-      "⏰ Coming up in 5 minutes!",
-      `${task} starts at ${fmt12(start)}`,
-      'staging-sim-' + Date.now()
-    );
-    showToast('Fired: ' + task.replace(/[^\w\s]/g,'').trim());
-  }, 60000);
+  if (btn) { btn.textContent = '⏰ Scheduled! (~60s)'; btn.style.opacity = '0.6'; btn.disabled = true; }
+  fetch(`${WORKER_URL}/schedule-push`)
+    .then(r => r.json())
+    .then(j => {
+      if (j.ok) {
+        showToast('✅ Server will push in ~60s. Close the app!');
+      } else {
+        showToast('❌ Schedule failed: ' + (j.error || 'unknown'));
+        if (btn) { btn.textContent = '⏰ Alert in 1 Min'; btn.style.opacity = '1'; btn.disabled = false; }
+      }
+      // Re-enable button after 75s
+      setTimeout(() => {
+        if (btn) { btn.textContent = '⏰ Alert in 1 Min'; btn.style.opacity = '1'; btn.disabled = false; }
+      }, 75000);
+    })
+    .catch(err => {
+      showToast('❌ Network error: ' + err.message);
+      if (btn) { btn.textContent = '⏰ Alert in 1 Min'; btn.style.opacity = '1'; btn.disabled = false; }
+    });
 }
-let simTickId = null;
 
 function clearAllData() {
   if (confirm('Clear all checkmarks and notification state?')) {
