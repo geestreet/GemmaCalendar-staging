@@ -488,6 +488,73 @@
   .time-block:nth-child(8) { animation-delay: 0.16s; }
   .time-block:nth-child(9) { animation-delay: 0.18s; }
   .time-block:nth-child(10) { animation-delay: 0.20s; }
+
+  /* ─── Schedule editor ─────────────────────────────────────────── */
+  .editor {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.34,1.2,0.64,1);
+  }
+  .editor.show { transform: translateY(0); }
+  .editor-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 56px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0;
+    background: var(--bg);
+  }
+  .ed-title { font-family: 'Fraunces', serif; font-size: 1.3rem; font-weight: 600; color: var(--text); }
+  .ed-x, .ed-save {
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  .ed-save { background: linear-gradient(135deg, var(--accent), #a855f7); border-color: transparent; color: #fff; font-weight: 500; }
+  .ed-body { flex: 1; overflow-y: auto; padding: 16px 16px 8px; max-width: 480px; margin: 0 auto; width: 100%; }
+  .editor-foot { padding: 12px 16px calc(24px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); max-width: 480px; margin: 0 auto; width: 100%; background: var(--bg); }
+  .ed-add {
+    width: 100%; padding: 14px; border-radius: 14px;
+    border: 1px dashed var(--accent); background: rgba(192,132,252,0.08);
+    color: var(--accent); font-family: 'DM Sans', sans-serif; font-size: 0.95rem; cursor: pointer;
+  }
+  .ed-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px; margin-bottom: 12px;
+  }
+  .ed-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .ed-card input[type="time"], .ed-card input[type="text"] {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); padding: 9px 10px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem;
+    -webkit-appearance: none;
+  }
+  .ed-card input[type="text"] { flex: 1; width: 100%; }
+  .ed-card .ed-times input { width: 50%; }
+  .ed-times { display: flex; gap: 8px; flex: 1; }
+  .ed-del { border: none; background: rgba(251,113,133,0.12); color: var(--rose); border-radius: 10px; padding: 9px 11px; cursor: pointer; font-size: 0.9rem; }
+  .ed-days { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 4px; }
+  .ed-day {
+    width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--border);
+    background: transparent; color: var(--muted); font-size: 0.72rem; font-weight: 500;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+  }
+  .ed-day.on { background: linear-gradient(135deg, var(--accent), #a855f7); border-color: transparent; color: #fff; }
+  .ed-presets { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .ed-preset { font-size: 0.7rem; padding: 5px 9px; border-radius: 100px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; }
+
+  /* PIN pad */
+  .pin-card input { letter-spacing: 0.4em; text-align: center; font-size: 1.4rem; }
 </style>
 </head>
 <body>
@@ -496,7 +563,7 @@
   <div class="header">
     <div class="header-top">
       <div>
-        <h1>Gemma's <span>Schedule</span><span style="font-size:0.4em;font-weight:400;margin-left:6px;vertical-align:middle;-webkit-text-fill-color:#9b93c4;color:#9b93c4;font-style:normal;">v1.4 (staging)</span></h1>
+        <h1>Gemma's <span>Schedule</span><span onclick="bumpAdminTap()" style="font-size:0.4em;font-weight:400;margin-left:6px;vertical-align:middle;-webkit-text-fill-color:#9b93c4;color:#9b93c4;font-style:normal;cursor:pointer;">v1.6 (staging)</span></h1>
       </div>
       <button class="notif-btn" id="notifBtn" onclick="toggleNotifications()">
         <span id="notifIcon">🔔</span>
@@ -577,6 +644,19 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Schedule editor (admin) -->
+<div class="editor" id="editor">
+  <div class="editor-head">
+    <button class="ed-x" onclick="closeEditor()">✕</button>
+    <div class="ed-title">Edit Schedule</div>
+    <button class="ed-save" id="edSaveBtn" onclick="saveSchedule()">Save</button>
+  </div>
+  <div class="ed-body" id="edBody"></div>
+  <div class="editor-foot">
+    <button class="ed-add" onclick="addEvent()">＋ Add Event</button>
+  </div>
+</div>
+
 <div class="bottom-nav">
   <button class="reset-btn" onclick="resetDay()">↺ Reset Day</button>
   <button class="install-btn" id="installBtn" onclick="showInstallOverlay()">
@@ -616,65 +696,38 @@
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 const DAY_SHORT = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
-// Each entry: [startTime, endTime, task]
-// Time format: "HH:MM" 24h
-const scheduleData = {
-  weekday: [ // Mon-Fri
-    ["06:05","06:20","Wake Up ☀️"],
-    ["06:20","06:50","Morning Routine 🪥"],
-    ["06:50","07:15","Pack up & head downstairs 🎒"],
-    ["07:15","08:00","Cab Ride 🚕"],
-    ["08:00","14:30","Monte Nido 🏥"],
-    ["14:30","15:30","Cab Ride Home 🚕"],
-    ["15:30","16:00","Rest 😴"],
-    ["16:00","16:25","Snack & Rest 🍎"],
-    ["16:30","18:30","Tutor Time 📚"],
-    ["18:30","19:30","Dinner Time 🍽️"],
-    ["19:30","20:20","Relax 🛋️"],
-    ["20:20","20:40","PM Snack 🍌"],
-    ["20:40","21:20","Night Routine 🌙"],
-    ["21:20","21:25","Pick Out Clothes 👗"],
-    ["21:25","21:55","Read (No Devices) 📖"],
-    ["22:00","06:05","Bed Time 😴"],
-  ],
-  saturday: [
-    ["07:05","07:20","Wake Up ☀️"],
-    ["07:20","07:50","Morning Routine 🪥"],
-    ["07:50","08:00","Pack up & head downstairs 🎒"],
-    ["08:00","08:20","Cab Ride 🚕"],
-    ["08:30","14:30","Monte Nido 🏥"],
-    ["14:30","15:30","Cab Ride Home 🚕"],
-    ["15:30","16:00","Rest 😴"],
-    ["16:00","16:25","Snack & Rest 🍎"],
-    ["16:30","18:30","Optional / Art Time 🎨"],
-    ["18:30","19:30","Dinner Time 🍽️"],
-    ["19:30","20:20","Relax 🛋️"],
-    ["20:20","20:40","PM Snack 🍌"],
-    ["20:40","21:20","Night Routine 🌙"],
-    ["22:00","07:05","Bed Time 😴"],
-  ],
-  sunday: [
-    ["07:05","07:20","Wake Up ☀️"],
-    ["07:20","07:50","Morning Routine 🪥"],
-    ["07:50","08:00","Pack up & head downstairs 🎒"],
-    ["08:00","08:20","Cab Ride (if applicable) 🚕"],
-    ["08:30","14:30","Monte Nido / Vacation 🌴"],
-    ["14:30","15:30","Cab Ride Home 🚕"],
-    ["15:30","16:00","Rest 😴"],
-    ["16:00","16:25","Snack & Rest 🍎"],
-    ["16:30","18:30","Optional / Art Time 🎨"],
-    ["18:30","19:30","Dinner Time 🍽️"],
-    ["19:30","20:20","Relax 🛋️"],
-    ["20:20","20:40","PM Snack 🍌"],
-    ["20:40","21:20","Night Routine 🌙"],
-    ["23:00","07:05","Bed Time 😴"],
-  ]
-};
+// Schedule is a flat list of events loaded from the worker (single source of truth).
+// Each event: { id, start, end, task, days:[0..6] }  where 0=Mon … 6=Sun.
+let SCHEDULE = [];
+const SCHEDULE_CACHE_KEY = 'gemma_schedule_cache';
 
+// Instant render from cache (also works offline); network refresh happens after.
+function loadCachedSchedule() {
+  try {
+    const raw = localStorage.getItem(SCHEDULE_CACHE_KEY);
+    if (raw) { const d = JSON.parse(raw); if (Array.isArray(d)) return d; }
+  } catch {}
+  return [];
+}
+
+async function fetchSchedule() {
+  try {
+    const res = await fetch(`${WORKER_URL}/schedule`, { cache: 'no-store' });
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      SCHEDULE = data;
+      localStorage.setItem(SCHEDULE_CACHE_KEY, JSON.stringify(data));
+      return true;
+    }
+  } catch (e) { /* offline — keep whatever is cached */ }
+  return false;
+}
+
+// Events for a given day index (0=Mon … 6=Sun), sorted by start time.
 function getDaySchedule(dayIndex) {
-  if (dayIndex === 5) return scheduleData.saturday;
-  if (dayIndex === 6) return scheduleData.sunday;
-  return scheduleData.weekday;
+  return SCHEDULE
+    .filter(ev => Array.isArray(ev.days) && ev.days.includes(dayIndex))
+    .sort((a, b) => parseTime(a.start) - parseTime(b.start));
 }
 
 // ─── STATE ─────────────────────────────────────────────────────────────────
@@ -742,10 +795,14 @@ function renderSchedule() {
   let html = '';
   let nowInserted = false;
 
-  data.forEach((item, i) => {
-    const [start, end, task] = item;
+  if (data.length === 0) {
+    html = `<div style="text-align:center;color:var(--muted);padding:40px 20px;font-size:0.9rem;">No events for ${DAYS[activeDayIdx]}.<br>Tap the version number 5× to open the editor.</div>`;
+  }
+
+  data.forEach((ev) => {
+    const { start, end, task, id } = ev;
     const status = isToday ? blockStatus(start, end) : 'future';
-    const isDone = done.has(i);
+    const isDone = done.has(id);
 
     if (isToday && !nowInserted && status === 'future') {
       html += `<div class="now-line"></div>`;
@@ -758,7 +815,7 @@ function renderSchedule() {
     else if (status === 'past') cls = 'past';
 
     html += `
-      <div class="time-block ${cls}" onclick="toggleDone(${i})" id="block-${i}">
+      <div class="time-block ${cls}" onclick="toggleDone('${id}')" id="block-${id}">
         <div class="time-block-inner">
           <div class="check">
             <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
@@ -783,7 +840,8 @@ function updateProgress() {
   const data = getDaySchedule(activeDayIdx);
   const done = getDoneSet(activeDayIdx);
   const total = data.length;
-  const count = done.size;
+  // Only count done IDs that still exist in today's schedule
+  const count = data.filter(ev => done.has(ev.id)).length;
   const pct = total ? (count / total) * 100 : 0;
   document.getElementById('progressFill').style.width = pct + '%';
   document.getElementById('progressText').textContent = `${count} / ${total}`;
@@ -805,17 +863,17 @@ function updateNowBanner() {
   }
 }
 
-function toggleDone(idx) {
+function toggleDone(id) {
   const done = getDoneSet(activeDayIdx);
-  if (done.has(idx)) {
-    done.delete(idx);
+  if (done.has(id)) {
+    done.delete(id);
     showToast('Unchecked ↩');
   } else {
-    done.add(idx);
-    const data = getDaySchedule(activeDayIdx);
-    showToast('✓ ' + data[idx][2].replace(/[^\w\s\/]/g, '').trim());
+    done.add(id);
+    const ev = getDaySchedule(activeDayIdx).find(e => e.id === id);
+    if (ev) showToast('✓ ' + ev.task.replace(/[^\w\s\/]/g, '').trim());
     // confetti-ish feedback
-    const block = document.getElementById('block-' + idx);
+    const block = document.getElementById('block-' + id);
     if (block) {
       block.style.transform = 'scale(1.02)';
       setTimeout(() => { block.style.transform = ''; }, 300);
@@ -1065,16 +1123,15 @@ function checkAndNotify() {
   const now = nowMinutes();
   const todayStr = new Date().toDateString();
 
-  data.forEach((item, i) => {
-    const [start, , task] = item;
-    const s = parseTime(start);
-    const key = `${todayStr}_${i}`;
+  data.forEach((ev) => {
+    const s = parseTime(ev.start);
+    const key = `${todayStr}_${ev.id}`;
     // Notify 5 minutes before start time
     if (Math.abs(now - (s - 5)) <= 1 && !notifiedBlocks.has(key)) {
       notifiedBlocks.add(key);
       sendNotification(
         "⏰ Coming up in 5 minutes!",
-        `${task} starts at ${fmt12(start)}`,
+        `${ev.task} starts at ${fmt12(ev.start)}`,
         key
       );
     }
@@ -1097,8 +1154,11 @@ function isStandalone() {
 
 // ─── INIT ──────────────────────────────────────────────────────────────────
 function init() {
+  // Render instantly from cache, then refresh from the worker (single source of truth)
+  SCHEDULE = loadCachedSchedule();
   renderDayTabs();
   renderSchedule();
+  fetchSchedule().then(updated => { if (updated) renderSchedule(); });
 
   if (isStandalone()) {
     document.getElementById('installBtn').textContent = '✅ App Installed';
@@ -1182,6 +1242,124 @@ function clearAllData() {
     clearInterval(notifIntervalId);
     renderSchedule();
     showToast('All data cleared');
+  }
+}
+
+// ─── SCHEDULE EDITOR (admin) ─────────────────────────────────────────────────
+let editSchedule = null;
+let adminPin = '';
+let adminTaps = 0, adminTapTimer = null;
+const DOW = ['M','T','W','T','F','S','S'];
+
+function bumpAdminTap() {
+  adminTaps++;
+  clearTimeout(adminTapTimer);
+  adminTapTimer = setTimeout(() => { adminTaps = 0; }, 1500);
+  if (adminTaps >= 5) {
+    adminTaps = 0;
+    const pin = prompt('Enter admin PIN to edit the schedule:');
+    if (pin === null) return;
+    if (pin !== '7777') { showToast('❌ Wrong PIN'); return; }
+    adminPin = pin;
+    openEditor();
+  }
+}
+
+function openEditor() {
+  editSchedule = JSON.parse(JSON.stringify(SCHEDULE));
+  renderEditor();
+  document.getElementById('editor').classList.add('show');
+}
+function closeEditor() {
+  document.getElementById('editor').classList.remove('show');
+}
+
+function escAttr(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
+
+function renderEditor() {
+  const body = document.getElementById('edBody');
+  editSchedule.sort((a, b) => parseTime(a.start) - parseTime(b.start));
+  body.innerHTML = editSchedule.map((ev, i) => `
+    <div class="ed-card">
+      <div class="ed-row">
+        <div class="ed-times">
+          <input type="time" value="${ev.start}" oninput="edSet(${i},'start',this.value)">
+          <input type="time" value="${ev.end}" oninput="edSet(${i},'end',this.value)">
+        </div>
+        <button class="ed-del" onclick="edDelete(${i})">🗑</button>
+      </div>
+      <div class="ed-row">
+        <input type="text" value="${escAttr(ev.task)}" placeholder="Task name (emoji ok)" oninput="edSet(${i},'task',this.value)">
+      </div>
+      <div class="ed-days">
+        ${DOW.map((d, di) => `<button class="ed-day ${ev.days.includes(di) ? 'on' : ''}" onclick="edToggleDay(${i},${di})">${d}</button>`).join('')}
+      </div>
+      <div class="ed-presets">
+        <button class="ed-preset" onclick="edPreset(${i},'wd')">Mon–Fri</button>
+        <button class="ed-preset" onclick="edPreset(${i},'all')">Every day</button>
+        <button class="ed-preset" onclick="edPreset(${i},'we')">Weekend</button>
+        <button class="ed-preset" onclick="edPreset(${i},'sat')">Sat only</button>
+        <button class="ed-preset" onclick="edPreset(${i},'sun')">Sun only</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Update model on input WITHOUT re-render (keeps keyboard focus)
+function edSet(i, field, val) { editSchedule[i][field] = val; }
+
+function edToggleDay(i, di) {
+  const days = editSchedule[i].days;
+  const k = days.indexOf(di);
+  if (k >= 0) days.splice(k, 1); else days.push(di);
+  days.sort((a, b) => a - b);
+  renderEditor();
+}
+function edPreset(i, kind) {
+  const map = { wd:[0,1,2,3,4], all:[0,1,2,3,4,5,6], we:[5,6], sat:[5], sun:[6] };
+  editSchedule[i].days = map[kind].slice();
+  renderEditor();
+}
+function edDelete(i) {
+  if (!confirm('Delete "' + editSchedule[i].task + '"?')) return;
+  editSchedule.splice(i, 1);
+  renderEditor();
+}
+function addEvent() {
+  const id = 'e' + Date.now().toString(36) + Math.floor(Math.random() * 1000);
+  editSchedule.push({ id, start: '12:00', end: '12:30', task: 'New Event', days: [activeDayIdx] });
+  renderEditor();
+  const body = document.getElementById('edBody');
+  setTimeout(() => { body.scrollTop = body.scrollHeight; }, 50);
+}
+
+async function saveSchedule() {
+  for (const ev of editSchedule) {
+    if (!ev.task.trim()) { showToast('⚠️ Every event needs a name'); return; }
+    if (!ev.days.length) { showToast('⚠️ Each event needs at least one day'); return; }
+  }
+  const btn = document.getElementById('edSaveBtn');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+  try {
+    const res = await fetch(`${WORKER_URL}/schedule`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: adminPin, schedule: editSchedule })
+    });
+    const j = await res.json();
+    if (j.ok) {
+      SCHEDULE = JSON.parse(JSON.stringify(editSchedule));
+      localStorage.setItem(SCHEDULE_CACHE_KEY, JSON.stringify(SCHEDULE));
+      showToast('✅ Saved ' + j.count + ' events');
+      closeEditor();
+      renderDayTabs(); renderSchedule();
+    } else {
+      showToast('❌ ' + (j.error || 'Save failed'));
+    }
+  } catch (e) {
+    showToast('❌ Network error: ' + e.message);
+  } finally {
+    btn.textContent = 'Save'; btn.disabled = false;
   }
 }
 </script>
